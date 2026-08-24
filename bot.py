@@ -1,4 +1,28 @@
 import asyncio
+import os
+import time
+import re
+import subprocess
+from http.server import HTTPServer, BaseHTTPRequestHandler
+import threading
+
+# ----------------- RENDER WEB SERVER PING -----------------
+class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"FROZEN 02 Bot is Alive and Running!")
+
+def run_web_server():
+    port = int(os.environ.get("PORT", 8080))
+    server = HTTPServer(('0.0.0.0', port), SimpleHTTPRequestHandler)
+    print(f"Web server running on port {port}")
+    server.serve_forever()
+
+# Start web server in a background thread so it doesn't block the bot
+threading.Thread(target=run_web_server, daemon=True).start()
+# ----------------------------------------------------------
+
 try:
     asyncio.get_event_loop()
 except RuntimeError:
@@ -6,10 +30,6 @@ except RuntimeError:
 
 from pyrogram import Client, filters
 from pyrogram.types import ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-import subprocess
-import os
-import time
-import re
 
 API_ID = 36932307
 API_HASH = "f4bf98ccb466d9d6755c6dc1aae59d87"
@@ -303,7 +323,7 @@ async def handle_callback(client, callback_query: CallbackQuery):
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👋 Hello **{name}**, Welcome to our exclusive community!\n\n"
             f"🤖 I am **FROZEN 02**, your dedicated assistant here. This space is designed to give you secure access to top-tier Westland game mods and LiP tools safely.\n\n"
-            f"🔒 **Security Note:** All media shared here is heavily protected. Directপতি, forwarding, or saving to gallery are restricted for maximum privacy.\n\n"
+            f"🔒 **Security Note:** All media shared here is heavily protected. Direct downloads, forwarding, or saving to gallery are restricted for maximum privacy.\n\n"
             f"📌 Please make sure to check the group rules and guidelines to ensure a safe and smooth experience! 🚀"
         )
         keyboard = InlineKeyboardMarkup([
@@ -491,5 +511,5 @@ async def add_watermark(client, message):
         except Exception:
             pass
 
-print("FROZEN 02 Bot Complete Command & Reply Deletion Version Running! 🚀")
+print("FROZEN 02 Bot with Render Web Server Support Running! 🚀")
 app.run()
