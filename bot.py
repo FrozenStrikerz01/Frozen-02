@@ -1,8 +1,6 @@
 import asyncio
 import os
 import time
-import re
-import subprocess
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 
@@ -42,33 +40,19 @@ from pyrogram.types import ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboa
 
 API_ID = 36932307
 API_HASH = "f4bf98ccb466d9d6755c6dc1aae59d87"
-BOT_TOKEN = "8790409386:AAEaoqELUtkVBUWrcdISYR04Piq_prq8GUc"
+BOT_TOKEN = "8917607096:AAFAI8aK64DmJUXbotWySrUb5esnEb6U5Xo"
 
 ADMIN_ID = 8969195021
 VIP_GROUP_ID = -1003771099604
 
 app = Client(
-    "watermark_bot", 
+    "frozen_render_bot", 
     api_id=API_ID, 
     api_hash=API_HASH, 
-    bot_token=BOT_TOKEN,
-    workers=16,
-    max_concurrent_transmissions=4
+    bot_token=BOT_TOKEN
 )
 
 global_session_start = 0
-
-def get_video_duration(file_path):
-    try:
-        cmd = [
-            "ffprobe", "-v", "error", "-show_entries",
-            "format=duration", "-of",
-            "default=noprint_wrappers=1:nokey=1", file_path
-        ]
-        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
-        return float(result.stdout.strip())
-    except Exception:
-        return 0.0
 
 async def send_synced_tracked_message(client, chat_id, body_text, keyboard=None, incoming_msg=None):
     global global_session_start
@@ -189,7 +173,7 @@ async def start_command(client, message):
         await send_synced_tracked_message(client, message.chat.id, body, keyboard, message)
         return
         
-    await message.reply_text("👋 Welcome back, Boss! Send me any video, and I will watermark and upload it to the VIP group securely. 🚀")
+    await message.reply_text("👋 Welcome back, Boss! Render frontend server is active and running smoothly. 🚀")
 
 @app.on_message(filters.command("rules"))
 async def rules_command(client, message):
@@ -342,183 +326,5 @@ async def handle_callback(client, callback_query: CallbackQuery):
         await callback_query.answer(text="Opening Start Menu...", show_alert=False)
         await send_synced_tracked_message(client, callback_query.message.chat.id, body, keyboard, incoming_msg=callback_query.message)
 
-last_group_percent = -1
-
-async def group_progress_callback(current, total, group_msg, video_title):
-    global last_group_percent
-    percent = int((current / total) * 100)
-    
-    if percent >= last_group_percent + 5 or current == total:
-        last_group_percent = percent
-        try:
-            bar_length = 10
-            filled_length = int(bar_length * percent // 100)
-            bar = '█' * filled_length + '░' * (bar_length - filled_length)
-            
-            await group_msg.edit_text(
-                f"⚡ **UPLOADING SOON:** `[ {bar} ] {percent}%`\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"📹 **Title:** {video_title}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ *Please wait, the protected video is being uploaded to VIP.*"
-            )
-        except Exception:
-            pass
-
-@app.on_message(filters.video | filters.document)
-async def add_watermark(client, message):
-    if message.from_user.id != ADMIN_ID:
-        await message.reply_text("⛔ You are not authorized to use this bot!")
-        return
-
-    global last_group_percent
-    last_group_percent = -1
-
-    msg = await message.reply_text("⚡ **UPLOADING SOON:** `[ [░░░░░░░░░░] 0% ]`")
-    file_path = None
-    output_path = None
-    
-    video_title = message.caption if message.caption else "Exclusive VIP Mod Video"
-    
-    group_msg = None
-    try:
-        group_msg = await client.send_message(
-            VIP_GROUP_ID,
-            f"⚡ **UPLOADING SOON:** `[ [░░░░░░░░░░] 0% ]`\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"📹 **Title:** {video_title}\n"
-            f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"⚠️ *Please wait, the protected video is being uploaded to VIP.*"
-        )
-    except Exception:
-        pass
-
-    try:
-        last_dl_percent = -1
-        def download_progress(current, total):
-            nonlocal last_dl_percent
-            percent = int((current / total) * 100)
-            if percent >= last_dl_percent + 5 or current == total:
-                last_dl_percent = percent
-                bar_length = 10
-                filled_length = int(bar_length * percent // 100)
-                bar = '█' * filled_length + '░' * (bar_length - filled_length)
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.run_coroutine_threadsafe(
-                            msg.edit_text(f"⚡ **UPLOADING SOON:** `[ [{bar}] {percent}% ]`"),
-                            loop
-                        )
-                except Exception:
-                    pass
-
-        file_path = await message.download(progress=download_progress)
-        await msg.edit_text("⚡ **UPLOADING SOON:** `[ [██████████] 100% ]`")
-        
-        file_ext = os.path.splitext(file_path)[1]
-        output_path = f"watermarked_{message.id}{file_ext}"
-        watermark_text = "FROZEN STRIKER" 
-        total_duration = get_video_duration(file_path)
-        
-        command = [
-            "ffmpeg", "-y", "-i", file_path,
-            "-threads", "0",
-            "-vf", f"scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,drawtext=text='{watermark_text}':fontcolor=white:fontsize=28:box=1:boxcolor=black@0.5:boxborderw=6:x=15:y=15,format=yuv420p",
-            "-c:v", "libx264", "-preset", "fast", "-crf", "20",
-            "-c:a", "copy", output_path
-        ]
-        
-        process = subprocess.Popen(command, stderr=subprocess.PIPE, universal_newlines=True)
-        
-        last_ffmpeg_update = 0
-        last_ff_percent = -1
-        while True:
-            line = process.stderr.readline()
-            if not line and process.poll() is not None:
-                break
-            if "out_time_ms=" in line or "time=" in line:
-                if total_duration > 0:
-                    try:
-                        time_match = re.search(r"time=(\d{2}):(\d{2}):(\d{2}\.\d{2})", line)
-                        if time_match:
-                            hours, minutes, seconds = map(float, time_match.groups())
-                            current_time = hours * 3600 + minutes * 60 + seconds
-                            percent = int(min(100.0, (current_time / total_duration) * 100))
-                            
-                            now = time.time()
-                            if (percent >= last_ff_percent + 5 or percent == 100) and (now - last_ffmpeg_update > 2):
-                                last_ffmpeg_update = now
-                                last_ff_percent = percent
-                                bar_length = 10
-                                filled_length = int(bar_length * percent // 100)
-                                bar = '█' * filled_length + '░' * (bar_length - filled_length)
-                                await msg.edit_text(f"⚡ **UPLOADING SOON:** `[ [{bar}] {percent}% ]`")
-                    except Exception:
-                        pass
-                        
-        process.wait()
-        if process.returncode != 0:
-            raise Exception("FFmpeg processing failed.")
-        
-        await msg.edit_text("⚡ **UPLOADING SOON:** `[ [██████████] 100% ]`")
-        
-        original_caption = message.caption if message.caption else ""
-        my_branding = (
-            "━━━━━━━━━━━━━━━━━━━━\n"
-            "💛 Name: FROZEN STRIKER\n"
-            "💛 Username: @BLACKSUNGOD05"
-        )
-        
-        if original_caption:
-            caption_text = original_caption + "\n" + my_branding
-        else:
-            caption_text = my_branding.strip()
-        
-        await client.send_video(
-            VIP_GROUP_ID, 
-            output_path, 
-            caption=caption_text,
-            protect_content=True,
-            progress=group_progress_callback,
-            progress_args=(group_msg, video_title)
-        )
-        
-        try:
-            if group_msg:
-                await group_msg.delete()
-        except Exception:
-            pass
-        
-        try:
-            await msg.delete()
-        except Exception:
-            pass
-            
-        try:
-            await message.delete()
-        except Exception:
-            pass
-        
-    except Exception as z:
-        try:
-            await msg.edit_text(f"❌ An error occurred: {z}")
-            if group_msg:
-                await group_msg.edit_text(f"❌ Video upload failed due to an error.")
-        except Exception:
-            pass
-            
-    finally:
-        try:
-            if file_path and os.path.exists(file_path):
-                os.remove(file_path)
-        except Exception:
-            pass
-        try:
-            if output_path and os.path.exists(output_path):
-                os.remove(output_path)
-        except Exception:
-            pass
-
-print("FROZEN 02 Bot with Render Web Server Support Running! 🚀")
+print("FROZEN 02 Render Frontend Bot Running Successfully! 🚀")
 app.run()
