@@ -10,8 +10,11 @@ import threading
 class SimpleHTTPRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
+        self.send_header("Content-type", "text/html")
         self.end_headers()
         self.wfile.write(b"FROZEN 02 Bot is Alive and Running!")
+    def log_message(self, format, *args):
+        return
 
 def run_web_server():
     port = int(os.environ.get("PORT", 8080))
@@ -19,7 +22,7 @@ def run_web_server():
     print(f"Web server running on port {port}")
     server.serve_forever()
 
-# Start web server in a background thread so it doesn't block the bot
+# Start web server in a background thread
 threading.Thread(target=run_web_server, daemon=True).start()
 # ----------------------------------------------------------
 
