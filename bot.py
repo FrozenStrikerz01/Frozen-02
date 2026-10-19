@@ -40,7 +40,7 @@ from pyrogram.types import ChatMemberUpdated, InlineKeyboardMarkup, InlineKeyboa
 
 API_ID = 36932307
 API_HASH = "f4bf98ccb466d9d6755c6dc1aae59d87"
-BOT_TOKEN = "8917607096:AAFAI8aK64DmJUXbotWySrUb5esnEb6U5Xo"
+BOT_TOKEN = "8890754380:AAE3h_66mP4eb-C_IeGS6_11tDddfQORj_I"
 
 ADMIN_ID = 8824812085
 VIP_GROUP_ID = -1003771099604
